@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const AppError = require('../utils/AppError');
+const AppError = require('../../utils/AppError');
 
 /**
  * Sign a JWT for the given user ID.

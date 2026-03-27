@@ -1,5 +1,5 @@
 const Customer = require('../models/Customer');
-const AppError = require('../utils/AppError');
+const AppError = require('../../utils/AppError');
 
 /**
  * Create a new customer.
