@@ -55,7 +55,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/complaints', complaintRoutes);
 
 // ── 404 handler for undefined routes ─────────────────────
-app.all('/{*path}', (req, _res, next) => {
+app.all('*', (req, _res, next) => {
   next(new AppError(`Cannot find ${req.method} ${req.originalUrl} on this server.`, 404));
 });
 
