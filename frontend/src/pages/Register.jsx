@@ -3,12 +3,14 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { useAuth } from '../context/AuthContext';
+import { Shield, User } from 'lucide-react';
 
 export function Register() {
   const navigate = useNavigate();
   const { signup, googleSignIn } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [roleTab, setRoleTab] = useState('citizen');
 
   const handleRegister = async (e) => {
     e.preventDefault();
@@ -21,11 +23,8 @@ export function Register() {
     try {
       await signup(name, email, password);
       
-      const adminEmails = ["admin@example.com"];
-      const role = adminEmails.includes(email) ? 'admin' : 'citizen';
-      localStorage.setItem('role', role);
-      
-      navigate(role === 'admin' ? '/admin' : '/dashboard');
+      localStorage.setItem('role', roleTab);
+      navigate(roleTab === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       if (err.code === 'auth/email-already-in-use') {
         setError('This email is already registered.');
@@ -41,12 +40,10 @@ export function Register() {
 
   const handleGoogle = async () => {
     try {
-      const user = await googleSignIn();
-      const adminEmails = ["admin@example.com"];
-      const role = adminEmails.includes(user?.email) ? 'admin' : 'citizen';
-      localStorage.setItem('role', role);
+      await googleSignIn();
       
-      navigate(role === 'admin' ? '/admin' : '/dashboard');
+      localStorage.setItem('role', roleTab);
+      navigate(roleTab === 'admin' ? '/admin' : '/dashboard');
     } catch (err) {
       if (err.code === 'auth/unauthorized-domain') {
         setError('Google Sign-In blocked: Domain not authorized. Add your domain in Firebase Console -> Authentication -> Settings -> Authorized Domains.');
@@ -79,6 +76,21 @@ export function Register() {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow-sm border border-slate-200 sm:rounded-xl sm:px-10">
           
+          <div className="flex bg-slate-100 p-1 rounded-lg mb-6">
+            <button
+              onClick={() => setRoleTab('citizen')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${roleTab === 'citizen' ? 'bg-white shadow-sm text-blue-700' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <User className="h-4 w-4" /> Citizen
+            </button>
+            <button
+              onClick={() => setRoleTab('admin')}
+              className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-all ${roleTab === 'admin' ? 'bg-amber-100 shadow-sm text-amber-800' : 'text-slate-500 hover:text-slate-700'}`}
+            >
+              <Shield className="h-4 w-4" /> Admin
+            </button>
+          </div>
+
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
               {error}

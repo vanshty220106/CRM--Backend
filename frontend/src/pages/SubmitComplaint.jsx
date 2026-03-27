@@ -10,6 +10,7 @@ import { MapPicker } from '../components/local/MapPicker';
 export function SubmitComplaint() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [formData, setFormData] = useState({
@@ -22,6 +23,7 @@ export function SubmitComplaint() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
     try {
       const data = new FormData();
       data.append('title', formData.title);
@@ -36,8 +38,9 @@ export function SubmitComplaint() {
 
       await complaintService.submitComplaint(data);
       navigate('/dashboard');
-    } catch (error) {
-      console.error('Failed to submit complaint', error);
+    } catch (err) {
+      console.error('Failed to submit complaint', err);
+      setError(err.response?.data?.message || err.message || 'Failed to submit complaint');
     } finally {
       setLoading(false);
     }
@@ -74,6 +77,11 @@ export function SubmitComplaint() {
         transition={{ duration: 0.4 }}
         className="bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm"
       >
+        {error && (
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+            {error}
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
             <div>

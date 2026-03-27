@@ -52,11 +52,10 @@ export function MapPicker({ onLocationSelect }) {
   return (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
-        <label className="text-sm font-medium text-slate-700">Pinpoint Location</label>
         <button 
           type="button" 
           onClick={handleAutoDetect}
-          className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+          className="text-xs text-blue-600 hover:text-blue-700 font-medium ml-auto"
         >
           Auto-detect My Location
         </button>

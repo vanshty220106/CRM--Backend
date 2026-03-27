@@ -8,8 +8,12 @@ import { useAuth } from '../../context/AuthContext';
 export function Sidebar({ isOpen, setIsOpen }) {
   const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
   const { user } = useAuth();
+  const role = localStorage.getItem('role');
   
-  const navItems = [
+  const navItems = role === 'admin' ? [
+    { name: 'Dashboard', path: '/admin', icon: LayoutDashboard },
+    { name: 'Complaints', path: '/complaints', icon: FileText }
+  ] : [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'My Complaints', path: '/complaints', icon: FileText },
     { name: 'Submit Complaint', path: '/submit', icon: PlusCircle },
