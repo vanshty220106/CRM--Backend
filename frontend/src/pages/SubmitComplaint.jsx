@@ -11,6 +11,7 @@ export function SubmitComplaint() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [showSuccess, setShowSuccess] = useState(false);
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState('');
   const [formData, setFormData] = useState({
@@ -37,7 +38,10 @@ export function SubmitComplaint() {
       }
 
       await complaintService.submitComplaint(data);
-      navigate('/dashboard');
+      setShowSuccess(true);
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 2500);
     } catch (err) {
       console.error('Failed to submit complaint', err);
       setError(err.response?.data?.message || err.message || 'Failed to submit complaint');
@@ -75,8 +79,27 @@ export function SubmitComplaint() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4 }}
-        className="bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm"
+        className="bg-white p-6 sm:p-8 rounded-xl border border-slate-200 shadow-sm relative"
       >
+        {/* Success Popup Modal */}
+        {showSuccess && (
+          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/90 backdrop-blur-sm rounded-xl">
+            <motion.div 
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-green-50 border border-green-200 p-6 rounded-xl text-center shadow-lg max-w-sm mx-4"
+            >
+              <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-green-100 mb-4">
+                <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" strokeWidth="2" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-xl font-bold text-green-900 mb-2">Complaint Submitted!</h3>
+              <p className="text-sm text-green-700">Your request has been successfully registered. You will be redirected shortly.</p>
+            </motion.div>
+          </div>
+        )}
+
         {error && (
           <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
             {error}

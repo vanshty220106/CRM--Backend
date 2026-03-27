@@ -11,6 +11,30 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  const syncBackend = async (firebaseUser) => {
+    try {
+      const activeRole = localStorage.getItem('role') || 'citizen';
+      const tokenRes = await fetch('/api/auth/firebase-sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid: firebaseUser.uid,
+          email: firebaseUser.email,
+          name: firebaseUser.displayName || 'Citizen',
+          role: activeRole
+        })
+      });
+      if (tokenRes.ok) {
+        const tokenData = await tokenRes.json();
+        if (tokenData?.data?.token) {
+          localStorage.setItem('token', tokenData.data.token);
+        }
+      }
+    } catch (syncErr) {
+      console.warn("Backend sync failed:", syncErr);
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (!firebaseUser) {
@@ -27,26 +51,7 @@ export const AuthProvider = ({ children }) => {
       }
 
       // --- 1. FIREBASE TO BACKEND JWT SYNC ---
-      try {
-        const tokenRes = await fetch('/api/auth/firebase-sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            name: firebaseUser.displayName || 'Citizen',
-            role: 'citizen'
-          })
-        });
-        if (tokenRes.ok) {
-          const tokenData = await tokenRes.json();
-          if (tokenData?.data?.token) {
-            localStorage.setItem('token', tokenData.data.token);
-          }
-        }
-      } catch (syncErr) {
-        console.warn("Backend sync failed:", syncErr);
-      }
+      await syncBackend(firebaseUser);
       
       // --- 2. OPTIMISTIC RENDER (Block unmounts before Firestore hang) ---
       setUser(firebaseUser);
@@ -66,7 +71,9 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     setLoading(true);
     try {
-      return await authLogin(email, password);
+      const cred = await authLogin(email, password);
+      await syncBackend(cred.user);
+      return cred;
     } catch (error) {
       setLoading(false);
       throw error;
@@ -76,7 +83,9 @@ export const AuthProvider = ({ children }) => {
   const signup = async (name, email, password) => {
     setLoading(true);
     try {
-      return await authSignup(name, email, password);
+      const cred = await authSignup(name, email, password);
+      await syncBackend(cred.user);
+      return cred;
     } catch (error) {
       setLoading(false);
       throw error;
@@ -96,7 +105,9 @@ export const AuthProvider = ({ children }) => {
   const googleSignIn = async () => {
     setLoading(true);
     try {
-      return await authGoogleSignIn();
+      const cred = await authGoogleSignIn();
+      await syncBackend(cred.user);
+      return cred;
     } catch (error) {
       setLoading(false);
       throw error;
