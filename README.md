@@ -6,10 +6,12 @@ A production-ready **Civic Grievance Management System** built with Node.js, Exp
 
 - **Dual-Role Dashboard Architecture** (Citizen vs. Admin)
 - **Firebase Authentication** mapped securely to local DB tokens.
+- **Robust Sync Bridging** guaranteeing JWT token fetching prevents initial sign-up dashboard routing errors.
 - **Interactive Map Pinning** using React-Leaflet for location tracking.
 - **Real-Time Analytics Dashboard** powered by Recharts (Publicly Accessible).
 - **Status Timeline Tracking** keeping Citizens informed of Admin resolutions.
 - **Media Uploads** (Multer) for Citizen evidence and Admin proof of resolution.
+- **Success Notification Popups** confirming database ingestion explicitly before exiting submission forms.
 
 ## 🛠️ Tech Stack
 
