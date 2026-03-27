@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, FileText, PlusCircle } from 'lucide-react';
+import { LayoutDashboard, FileText, PlusCircle, LogOut } from 'lucide-react';
 import { cn } from '../../utils/cn';
+import { LogoutModal } from '../ui/LogoutModal';
+import { useAuth } from '../../context/AuthContext';
 
 export function Sidebar({ isOpen, setIsOpen }) {
+  const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+  const { user } = useAuth();
+  
   const navItems = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'My Complaints', path: '/complaints', icon: FileText },
@@ -12,6 +17,8 @@ export function Sidebar({ isOpen, setIsOpen }) {
 
   return (
     <>
+      <LogoutModal isOpen={isLogoutModalOpen} onClose={() => setIsLogoutModalOpen(false)} />
+
       {/* Mobile Backdrop */}
       {isOpen && (
         <div 
@@ -58,16 +65,24 @@ export function Sidebar({ isOpen, setIsOpen }) {
           ))}
         </nav>
 
-        {/* User profile section at bottom */}
         <div className="border-t border-slate-100 p-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-medium text-slate-600">
-              JD
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-100 text-sm font-medium text-slate-600 uppercase">
+                {user?.name ? user.name.charAt(0) : (user?.displayName ? user.displayName.charAt(0) : 'U')}
+              </div>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-slate-900 truncate w-32">{user?.name || user?.displayName || 'Citizen'}</span>
+                <span className="text-xs text-slate-500 capitalize">{user?.role || 'Citizen'}</span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-sm font-medium text-slate-900">John Doe</span>
-              <span className="text-xs text-slate-500">Citizen</span>
-            </div>
+            <button 
+              onClick={() => setIsLogoutModalOpen(true)}
+              className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Log out"
+            >
+              <LogOut className="h-5 w-5" />
+            </button>
           </div>
         </div>
       </aside>

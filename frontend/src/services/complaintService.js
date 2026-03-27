@@ -5,6 +5,10 @@ export const complaintService = {
     return api.get('/complaints');
   },
 
+  getMyComplaints: async () => {
+    return api.get('/complaints/me');
+  },
+
   getStats: async () => {
     return api.get('/complaints/stats');
   },

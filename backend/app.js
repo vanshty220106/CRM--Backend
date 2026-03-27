@@ -2,7 +2,7 @@ const express = require('express');
 const helmet = require('helmet');
 const cors = require('cors');
 const rateLimit = require('express-rate-limit');
-const mongoSanitize = require('express-mongo-sanitize');
+const path = require('path');
 const AppError = require('./utils/AppError');
 const errorHandler = require('./middlewares/errorHandler');
 
@@ -14,7 +14,7 @@ const complaintRoutes = require('./routes/complaintRoutes');
 const app = express();
 
 // ── Security middleware ──────────────────────────────────
-app.use(helmet()); // Set security HTTP headers
+app.use(helmet({ crossOriginResourcePolicy: false })); // Set security HTTP headers
 
 app.use(
   cors({
@@ -37,12 +37,15 @@ const limiter = rateLimit({
 });
 app.use('/api', limiter);
 
-// ── Body parsing ─────────────────────────────────────────
-app.use(express.json({ limit: '10kb' })); // Limit body size
-app.use(express.urlencoded({ extended: true, limit: '10kb' }));
+// ── Static Files ─────────────────────────────────────────
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Sanitize data against NoSQL injection
-app.use(mongoSanitize());
+// ── Body parsing ─────────────────────────────────────────
+app.use(express.json({ limit: '10mb' })); // Limit body size
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+// Sanitize data against NoSQL injection (Disabled due to Express 5 compatibility issue)
+// app.use(mongoSanitize());
 
 // ── Health check ─────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
@@ -55,7 +58,7 @@ app.use('/api/customers', customerRoutes);
 app.use('/api/complaints', complaintRoutes);
 
 // ── 404 handler for undefined routes ─────────────────────
-app.all('*', (req, _res, next) => {
+app.all('/{*path}', (req, _res, next) => {
   next(new AppError(`Cannot find ${req.method} ${req.originalUrl} on this server.`, 404));
 });
 

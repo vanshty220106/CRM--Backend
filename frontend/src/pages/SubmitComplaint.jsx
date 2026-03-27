@@ -3,16 +3,19 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { MapPin, Image as ImageIcon } from 'lucide-react';
+import { MapPin, Image as ImageIcon, X } from 'lucide-react';
 import { complaintService } from '../services/complaintService';
+import { MapPicker } from '../components/local/MapPicker';
 
 export function SubmitComplaint() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
+  const [file, setFile] = useState(null);
+  const [preview, setPreview] = useState('');
   const [formData, setFormData] = useState({
     title: '',
     category: '',
-    location: '',
+    location: null,
     description: '',
   });
 
@@ -20,7 +23,18 @@ export function SubmitComplaint() {
     e.preventDefault();
     setLoading(true);
     try {
-      await complaintService.submitComplaint(formData);
+      const data = new FormData();
+      data.append('title', formData.title);
+      data.append('category', formData.category);
+      if (formData.location) {
+        data.append('location', JSON.stringify(formData.location));
+      }
+      data.append('description', formData.description);
+      if (file) {
+        data.append('image', file);
+      }
+
+      await complaintService.submitComplaint(data);
       navigate('/dashboard');
     } catch (error) {
       console.error('Failed to submit complaint', error);
@@ -32,6 +46,19 @@ export function SubmitComplaint() {
   const handleChange = (e) => {
     const { id, value } = e.target;
     setFormData(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const selectedFile = e.target.files[0];
+    if (selectedFile) {
+      setFile(selectedFile);
+      setPreview(URL.createObjectURL(selectedFile));
+    }
+  };
+
+  const clearFile = () => {
+    setFile(null);
+    setPreview('');
   };
 
   return (
@@ -74,8 +101,13 @@ export function SubmitComplaint() {
             </div>
 
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-1">Location Address</label>
-              <Input id="location" value={formData.location} onChange={handleChange} placeholder="Full address or landmark" icon={<MapPin className="h-4 w-4" />} required />
+              <label htmlFor="location" className="block text-sm font-medium text-slate-700 mb-1">Pinpoint Location on Map *</label>
+              <div className="h-[300px] w-[100%] rounded-lg border border-slate-300 overflow-hidden relative z-0">
+                <MapPicker onLocationSelect={(loc) => setFormData(prev => ({ ...prev, location: loc }))} />
+              </div>
+              {!formData.location && (
+                <p className="text-xs text-amber-600 mt-1">Please drop a pin on the map to record exact coordinates.</p>
+              )}
             </div>
 
             <div>
@@ -93,19 +125,29 @@ export function SubmitComplaint() {
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Evidence (Images)</label>
-              <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg hover:bg-slate-50 transition-colors cursor-pointer">
-                <div className="space-y-1 text-center">
-                  <ImageIcon className="mx-auto h-12 w-12 text-slate-400" />
-                  <div className="flex text-sm text-slate-600 justify-center">
-                    <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
-                      <span>Upload a file</span>
-                      <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/*" />
-                    </label>
-                    <p className="pl-1">or drag and drop</p>
+              
+              {!preview ? (
+                <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-slate-300 border-dashed rounded-lg hover:bg-slate-50 transition-colors cursor-pointer relative">
+                  <div className="space-y-1 text-center">
+                    <ImageIcon className="mx-auto h-12 w-12 text-slate-400" />
+                    <div className="flex text-sm text-slate-600 justify-center">
+                      <label htmlFor="file-upload" className="relative cursor-pointer rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500">
+                        <span>Upload a file</span>
+                        <input id="file-upload" name="file-upload" type="file" className="sr-only" accept="image/*" onChange={handleFileChange} />
+                      </label>
+                      <p className="pl-1">or click to browse</p>
+                    </div>
+                    <p className="text-xs text-slate-500">PNG, JPG up to 5MB</p>
                   </div>
-                  <p className="text-xs text-slate-500">PNG, JPG up to 5MB</p>
                 </div>
-              </div>
+              ) : (
+                <div className="relative mt-2 inline-block">
+                  <img src={preview} alt="Evidence preview" className="h-40 w-auto rounded-lg object-cover border border-slate-200 shadow-sm" />
+                  <button type="button" onClick={clearFile} className="absolute -top-3 -right-3 bg-red-100 hover:bg-red-200 text-red-600 rounded-full p-1.5 transition-colors shadow-sm">
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
 

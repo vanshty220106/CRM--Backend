@@ -20,7 +20,7 @@ const complaintSchema = new mongoose.Schema({
     ]
   },
   location: {
-    type: String,
+    type: mongoose.Schema.Types.Mixed,
     required: [true, 'Please add a location']
   },
   description: {
@@ -29,8 +29,24 @@ const complaintSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['Pending', 'In Progress', 'Escalated', 'Resolved'],
-    default: 'Pending'
+    enum: ['Pending', 'initiated', 'under_review', 'construction_ongoing', 'fixing_issues', 'resolved', 'In Progress', 'Escalated', 'Resolved'],
+    default: 'initiated'
+  },
+  updates: [{
+    status: String,
+    message: String,
+    timestamp: {
+      type: Date,
+      default: Date.now
+    }
+  }],
+  proofImage: {
+    type: String,
+    default: null
+  },
+  image: {
+    type: String,
+    default: null
   },
   user: {
     type: mongoose.Schema.ObjectId,

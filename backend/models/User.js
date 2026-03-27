@@ -26,10 +26,10 @@ const userSchema = new mongoose.Schema(
     role: {
       type: String,
       enum: {
-        values: ['admin', 'manager', 'sales'],
-        message: 'Role must be admin, manager, or sales',
+        values: ['admin', 'manager', 'sales', 'citizen'],
+        message: 'Role must be admin, manager, sales, or citizen',
       },
-      default: 'sales',
+      default: 'citizen',
     },
     isActive: {
       type: Boolean,
