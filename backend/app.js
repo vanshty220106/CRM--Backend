@@ -16,9 +16,20 @@ const app = express();
 // ── Security middleware ──────────────────────────────────
 app.use(helmet({ crossOriginResourcePolicy: false })); // Set security HTTP headers
 
+const ALLOWED_ORIGINS = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  process.env.CORS_ORIGIN,
+].filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. curl, mobile apps)
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+      callback(new Error(`CORS policy: origin ${origin} not allowed`));
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   })
@@ -49,7 +60,13 @@ app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // ── Health check ─────────────────────────────────────────
 app.get('/api/health', (_req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+  const mongoose = require('mongoose');
+  const dbMode = mongoose.connection.readyState === 1 ? 'atlas' : 'local_file';
+  res.status(200).json({
+    status: 'ok',
+    dbMode,
+    timestamp: new Date().toISOString()
+  });
 });
 
 // ── API routes ───────────────────────────────────────────

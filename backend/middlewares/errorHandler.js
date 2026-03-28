@@ -31,6 +31,14 @@ const errorHandler = (err, req, res, _next) => {
   err.statusCode = err.statusCode || 500;
   err.status = err.status || 'error';
 
+  // Handle MongoDB not connected — dev + prod
+  if (err.name === 'MongooseServerSelectionError' || err.message?.includes('buffering timed out')) {
+    return res.status(503).json({
+      status: 'error',
+      message: 'Database is currently unavailable. Please check your MongoDB Atlas IP whitelist and try again.',
+    });
+  }
+
   if (process.env.NODE_ENV === 'development') {
     return res.status(err.statusCode).json({
       status: err.status,
@@ -53,6 +61,14 @@ const errorHandler = (err, req, res, _next) => {
     return res.status(error.statusCode).json({
       status: error.status,
       message: error.message,
+    });
+  }
+
+  // Handle MongoDB not connected (buffering timeout)
+  if (err.name === 'MongooseServerSelectionError' || err.message?.includes('buffering timed out')) {
+    return res.status(503).json({
+      status: 'error',
+      message: 'Database is currently unavailable. Please try again in a moment.',
     });
   }
 
