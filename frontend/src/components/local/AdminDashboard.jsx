@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Navigate } from 'react-router-dom';
-import { Search, Filter, Shield, RefreshCw, CheckCircle2, Clock, Wrench, AlertCircle, Loader2, PackageCheck, ChevronDown, ChevronUp, MapPin, Calendar, Tag, Image as ImageIcon, FileText } from 'lucide-react';
+import { Search, Filter, Shield, RefreshCw, CheckCircle2, Clock, Wrench, AlertCircle, Loader2, PackageCheck, ChevronDown, ChevronUp, MapPin, Calendar, Tag, Image as ImageIcon, FileText, Brain, Radio } from 'lucide-react';
 import { complaintService } from '../../services/complaintService';
 import { StatusTimeline } from './StatusTimeline';
 import { motion, AnimatePresence } from 'framer-motion';
+import { onNewComplaint, onHotspotAlert, onComplaintUpdated } from '../../services/socketService';
 
 const STATUS_OPTIONS = [
   { value: 'initiated',            label: 'Initiated',       icon: AlertCircle,  color: 'text-blue-600',   bg: 'bg-blue-50',   border: 'border-blue-200'   },
@@ -109,7 +110,18 @@ function AdminComplaintCard({ complaint, onUpdate }) {
               )}
             </div>
             <h3 className="text-base font-bold text-slate-900">{complaint.title}</h3>
-            <p className="text-xs text-slate-500 mt-0.5">{complaint.category}</p>
+            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+              <p className="text-xs text-slate-500">{complaint.category}</p>
+              {complaint.mlCategory && (
+                <span className="inline-flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                  <Brain className="h-2.5 w-2.5" />
+                  {complaint.mlCategory}
+                  {complaint.mlConfidence && (
+                    <span className="text-indigo-400 ml-0.5">{(complaint.mlConfidence * 100).toFixed(0)}%</span>
+                  )}
+                </span>
+              )}
+            </div>
           </div>
           <button
             onClick={() => setExpanded(v => !v)}
@@ -343,6 +355,32 @@ export function AdminDashboard() {
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
+  // ── Socket.io real-time listeners ────────────────────────
+  const [hotspotBanner, setHotspotBanner] = useState(null);
+
+  useEffect(() => {
+    const unsubNew = onNewComplaint((data) => {
+      setComplaints(prev => [data.complaint, ...prev]);
+    });
+
+    const unsubHotspot = onHotspotAlert((data) => {
+      setHotspotBanner(data);
+      setTimeout(() => setHotspotBanner(null), 10000);
+    });
+
+    const unsubUpdate = onComplaintUpdated((data) => {
+      setComplaints(prev =>
+        prev.map(c => c.id === data.complaint.id ? data.complaint : c)
+      );
+    });
+
+    return () => {
+      unsubNew();
+      unsubHotspot();
+      unsubUpdate();
+    };
+  }, []);
+
   const handleUpdate = async (id, status, message, proofImage) => {
     await complaintService.updateComplaintStatus(id, { status, message, proofImage });
     const newUpdate = { status, message, timestamp: new Date().toISOString() };
@@ -379,6 +417,29 @@ export function AdminDashboard() {
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 lg:px-8 animate-in fade-in duration-500">
+      {/* Hotspot Alert Banner */}
+      <AnimatePresence>
+        {hotspotBanner && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="mb-6 p-4 bg-gradient-to-r from-red-500 to-orange-500 rounded-2xl text-white flex items-center gap-3 shadow-lg"
+          >
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Radio className="h-5 w-5 text-white animate-pulse" />
+            </div>
+            <div className="flex-1">
+              <p className="font-bold text-sm">🔥 HOTSPOT ALERT — {hotspotBanner.category}</p>
+              <p className="text-white/80 text-xs mt-0.5">{hotspotBanner.count} complaints in the last 10 minutes. Immediate attention required.</p>
+            </div>
+            <button onClick={() => setHotspotBanner(null)} className="p-1 hover:bg-white/20 rounded-lg transition-colors text-white/80 hover:text-white">
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
       <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
         <div>

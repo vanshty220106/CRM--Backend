@@ -5,6 +5,7 @@ import { DashboardLayout } from './components/layout/DashboardLayout';
 import { Dashboard } from './pages/Dashboard';
 import { MyComplaints } from './pages/MyComplaints';
 import { SubmitComplaint } from './pages/SubmitComplaint';
+import { HotspotDashboard } from './pages/HotspotDashboard';
 import { Login } from './pages/Login';
 import { Register } from './pages/Register';
 import { AuthProvider } from './context/AuthContext';
@@ -31,6 +32,7 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/complaints" element={<MyComplaints />} />
                 <Route path="/submit" element={<SubmitComplaint />} />
+                <Route path="/hotspot-dashboard" element={<HotspotDashboard />} />
               </Route>
             </Route>
             

@@ -13,6 +13,10 @@ export const complaintService = {
     return api.get('/complaints/stats');
   },
 
+  getHotspots: async () => {
+    return api.get('/complaints/hotspots');
+  },
+
   submitComplaint: async (complaintData) => {
     return api.post('/complaints', complaintData);
   },

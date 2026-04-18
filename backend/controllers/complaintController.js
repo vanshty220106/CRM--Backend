@@ -1,5 +1,7 @@
 const { Complaint } = require('../utils/dbAdapter');
 const AppError = require('../utils/AppError');
+const { classifyGrievance } = require('../services/mlClassifier');
+const { recordComplaint, getFrequencyStats, getRecentComplaints } = require('../services/hotspotDetector');
 
 // helper: format a complaint doc for the API response
 const fmt = (c) => ({
@@ -7,6 +9,8 @@ const fmt = (c) => ({
   _id: c._id,
   title: c.title,
   category: c.category,
+  mlCategory: c.mlCategory || null,
+  mlConfidence: c.mlConfidence || null,
   status: c.status,
   date: c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
   userEmail: c.userEmail || 'User',
@@ -63,7 +67,18 @@ exports.getStats = async (req, res, next) => {
   }
 };
 
-// ── CREATE COMPLAINT ──────────────────────────────────────
+// ── GET HOTSPOT DATA ──────────────────────────────────────
+exports.getHotspots = async (req, res, next) => {
+  try {
+    const stats = getFrequencyStats();
+    const recentFeed = getRecentComplaints(30);
+    res.status(200).json({ stats, recentFeed });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ── CREATE COMPLAINT (with ML classification + hotspot detection) ──
 exports.createComplaint = async (req, res, next) => {
   try {
     let { title, category, location, description } = req.body;
@@ -74,6 +89,19 @@ exports.createComplaint = async (req, res, next) => {
 
     const imagePath = req.file ? `/uploads/${req.file.filename}` : null;
 
+    // ── ML Classification ──────────────────────────────────
+    let mlCategory = null;
+    let mlConfidence = null;
+    try {
+      const classificationText = `${title || ''} ${description || ''}`;
+      const result = await classifyGrievance(classificationText);
+      mlCategory = result.label;
+      mlConfidence = result.confidence;
+      console.log(`🧠 ML classified: "${title}" → ${mlCategory} (${(mlConfidence * 100).toFixed(1)}%)`);
+    } catch (mlErr) {
+      console.warn('⚠️  ML classification failed, storing without ML data:', mlErr.message);
+    }
+
     const newComplaint = await Complaint.create({
       title,
       category,
@@ -82,6 +110,8 @@ exports.createComplaint = async (req, res, next) => {
       image: imagePath,
       user: String(req.user._id),
       status: 'initiated',
+      mlCategory,
+      mlConfidence,
       updates: [{
         status: 'initiated',
         message: 'Complaint successfully registered via CivicFlow.',
@@ -89,7 +119,35 @@ exports.createComplaint = async (req, res, next) => {
       }],
     });
 
-    res.status(201).json(newComplaint);
+    // ── Hotspot Detection ──────────────────────────────────
+    if (mlCategory) {
+      const hotspotResult = recordComplaint(mlCategory, title, mlConfidence);
+
+      // Get Socket.io instance from app
+      const io = req.app.get('io');
+      if (io) {
+        // Emit new complaint to all connected clients
+        io.emit('NEW_COMPLAINT', {
+          complaint: fmt(newComplaint),
+          mlCategory,
+          mlConfidence,
+          timestamp: Date.now(),
+        });
+
+        // Emit hotspot alert if threshold exceeded
+        if (hotspotResult.isHotspot) {
+          console.log(`🔥 HOTSPOT DETECTED: ${mlCategory} — ${hotspotResult.count} complaints in last 10 minutes!`);
+          io.emit('HOTSPOT_ALERT', {
+            category: mlCategory,
+            count: hotspotResult.count,
+            timestamp: Date.now(),
+            message: `⚠️ SURGE DETECTED: ${hotspotResult.count} "${mlCategory}" complaints in the last 10 minutes!`,
+          });
+        }
+      }
+    }
+
+    res.status(201).json(fmt(newComplaint));
   } catch (error) {
     next(error);
   }
@@ -125,6 +183,16 @@ exports.updateComplaintStatus = async (req, res, next) => {
     if (proofImage) complaint.proofImage = proofImage;
 
     await complaint.save();
+
+    // Emit status update via Socket.io
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('COMPLAINT_UPDATED', {
+        complaint: fmt(complaint),
+        timestamp: Date.now(),
+      });
+    }
+
     res.status(200).json(complaint);
   } catch (error) {
     next(error);

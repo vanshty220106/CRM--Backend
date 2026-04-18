@@ -11,13 +11,34 @@ const complaintSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please specify a category'],
     enum: [
+      // Original categories
       'Roads & Infrastructure', 
       'Utilities', 
       'Environment', 
       'Noise', 
       'Vandalism', 
-      'Other'
+      'Other',
+      // ML Government categories
+      'Roads',
+      'Water',
+      'Electricity',
+      'Sanitation',
+      'Health',
+      'Public Transport',
     ]
+  },
+  // ML-assigned government category
+  mlCategory: {
+    type: String,
+    enum: ['Roads', 'Water', 'Electricity', 'Sanitation', 'Health', 'Public Transport', null],
+    default: null
+  },
+  // ML confidence score (0-1)
+  mlConfidence: {
+    type: Number,
+    min: 0,
+    max: 1,
+    default: null
   },
   location: {
     type: mongoose.Schema.Types.Mixed,
